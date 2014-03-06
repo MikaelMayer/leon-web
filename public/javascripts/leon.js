@@ -377,6 +377,7 @@ $(document).ready(function() {
         synthesis:      {active: true, name: "Synthesis"},
         termination:    {active: false, name: "Termination <i class=\"icon-beaker\" title=\"Beta version\"></i>"},
         presentation:   {active: false, name: "Presentation Mode"},
+        tutor:          {active: true, name: "Tutor Mode <i class=\"icon-beaker\" title=\"Beta version\"></i>"},
         execution:      {active: true, name: "Execution <i class=\"icon-beaker\" title=\"Beta version\"></i>"},
     }
 
@@ -1159,6 +1160,15 @@ $(document).ready(function() {
         readOnly: true
     });
 
+    editor.commands.addCommand({
+        name: 'step',
+        bindKey: {win: 'Ctrl-E',  mac: 'Command-E'},
+        exec: function(editor) {
+            executeStep()
+        },
+        readOnly: true
+    });
+
     editor.commands.removeCommand('replace');
     editor.commands.removeCommand('transposeletters');
 
@@ -1171,6 +1181,24 @@ $(document).ready(function() {
         }
         setTimeout(onCodeUpdate, timeWindow+50)
     });
+
+    function executeStep() {
+        var cursor = editorSession.selection.getCursor()
+
+        var res = editor.find('def', {
+            backwards: true,
+            wholeWord: true
+        });
+
+        editorSession.selection.moveCursorToPosition(cursor)
+        editorSession.selection.clearSelection();
+
+
+        var msg = JSON.stringify(
+          {action: "executeStep", module: "tutor", line: res.end.row}
+        )
+        leonSocket.send(msg)
+    }
 
     function resizeEditor() {
 

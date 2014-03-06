@@ -71,6 +71,7 @@ class ConsoleSession(remoteIP: String) extends Actor with BaseActor {
       modules += "termination"  -> ModuleContext("termination",  Akka.system.actorOf(Props(new TerminationWorker(self, interruptManager))))
       modules += "synthesis"    -> ModuleContext("synthesis",    Akka.system.actorOf(Props(new SynthesisWorker(self, interruptManager))))
       modules += "execution"    -> ModuleContext("execution",    Akka.system.actorOf(Props(new ExecutionWorker(self, interruptManager))))
+      modules += "tutor"        -> ModuleContext("tutor",        Akka.system.actorOf(Props(new TutorWorker(self, interruptManager))))
 
       logInfo("New client")
 
