@@ -1161,15 +1161,42 @@ $(document).ready(function() {
     });
 
     editor.commands.addCommand({
-        name: 'step',
-        bindKey: {win: 'Ctrl-E',  mac: 'Command-E'},
+        name: 'undo',
+        bindKey: {win: 'Ctrl-Z',  mac: 'Command-Z'},
         exec: function(editor) {
-            executeStep()
+            doUndo()
         },
         readOnly: true
     });
 
-    editor.commands.removeCommand('replace');
+    editor.commands.addCommand({
+        name: 'redo',
+        bindKey: {win: 'Shift-Ctrl-Z',  mac: 'Shift-Command-Z'},
+        exec: function(editor) {
+            doRedo()
+        },
+        readOnly: true
+    });
+
+    editor.commands.addCommand({
+        name: 'nextStep',
+        bindKey: {win: 'Ctrl-E',  mac: 'Command-E'},
+        exec: function(editor) {
+            doStep()
+        },
+        readOnly: true
+    });
+
+     editor.commands.addCommand({
+        name: 'lastStep',
+        bindKey: {win: 'Shift-Ctrl-E',  mac: 'Shift-Command-E'},
+        exec: function(editor) {
+            undoStep()
+        },
+        readOnly: true
+    });
+
+   editor.commands.removeCommand('replace');
     editor.commands.removeCommand('transposeletters');
 
     editorSession.on('change', function(e) {
@@ -1182,7 +1209,7 @@ $(document).ready(function() {
         setTimeout(onCodeUpdate, timeWindow+50)
     });
 
-    function executeStep() {
+    function doStep() {
         var cursor = editorSession.selection.getCursor()
 
         var res = editor.find('def', {
@@ -1195,7 +1222,25 @@ $(document).ready(function() {
 
 
         var msg = JSON.stringify(
-          {action: "executeStep", module: "tutor", line: res.end.row}
+          {action: "doStep", module: "tutor", line: res.end.row}
+        )
+        leonSocket.send(msg)
+    }
+
+    function undoStep() { 
+        var cursor = editorSession.selection.getCursor()
+
+        var res = editor.find('def', {
+            backwards: true,
+            wholeWord: true
+        });
+
+        editorSession.selection.moveCursorToPosition(cursor)
+        editorSession.selection.clearSelection();
+
+
+        var msg = JSON.stringify(
+          {action: "undoStep", module: "tutor", line: res.end.row}
         )
         leonSocket.send(msg)
     }

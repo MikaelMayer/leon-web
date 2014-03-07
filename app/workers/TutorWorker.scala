@@ -21,7 +21,11 @@ class TutorWorker(val session: ActorRef, interruptManager: InterruptManager) ext
   val reporter = new WorkerReporter(session)
   var ctx      = leon.Main.processOptions(Nil).copy(interruptManager = interruptManager, reporter = reporter)
 
-  def executeStep(cstate: CompilationState, line: Int) = {
+  def undoStep(cstate: CompilationState, line:Int) = {
+    
+  }
+
+  def doStep(cstate: CompilationState, line: Int) = {
     cstate.optProgram match {
       case Some(p) =>
         p.definedFunctions.find(d => !d.annotations("verified") && d.getPos.line == line+1) match {
@@ -59,9 +63,10 @@ class TutorWorker(val session: ActorRef, interruptManager: InterruptManager) ext
 
     case OnClientEvent(cstate, event) =>
       (event \ "action").as[String] match {
-        case "executeStep" =>
-          executeStep(cstate, (event \ "line").as[Int])
-
+        case "doStep" =>
+          doStep(cstate, (event \ "line").as[Int])
+        case "undoStep" =>
+          undoStep(cstate, (event \ "line").as[Int])
         case action =>
           notifyError("Received unknown action: "+action)
       }
