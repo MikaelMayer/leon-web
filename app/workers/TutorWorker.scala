@@ -21,8 +21,36 @@ class TutorWorker(val session: ActorRef, interruptManager: InterruptManager) ext
   val reporter = new WorkerReporter(session)
   var ctx      = leon.Main.processOptions(Nil).copy(interruptManager = interruptManager, reporter = reporter)
 
-  def undoStep(cstate: CompilationState, line:Int) = {
-    
+  def undoStep(cstate: CompilationState, line:Int) = { 
+    cstate.optProgram match {
+      case Some(p) =>
+        p.definedFunctions.find(d => !d.annotations("verified") && d.getPos.line == line+1) match {
+          case Some(fd) if fd.hasBody =>
+            val e = new LastStepEvaluator(ctx, p)
+
+              val fInt = new FileInterface(new MuteReporter())
+
+              val oldFd = fd
+              val newFd = fd.duplicate
+              newFd.body = newFd.body.map { b =>
+                e.eval(simplifyLets(b)) match {
+                  case EvaluationResults.Successful(res) => res
+                  case _ => b
+                }
+              }
+
+              println(ScalaPrinter(newFd))
+
+              val allCode = fInt.substitute(cstate.code.getOrElse(""),
+                                            oldFd,
+                                            newFd)
+
+              event("replace_code", Map("newCode" -> toJson(allCode)))
+          case None =>
+            notifyError("No function found at line "+(line+1))
+        }
+      case None =>
+    }
   }
 
   def doStep(cstate: CompilationState, line: Int) = {
