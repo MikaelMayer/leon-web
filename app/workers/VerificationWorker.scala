@@ -67,7 +67,7 @@ class VerificationWorker(s: ActorRef, im: InterruptManager) extends WorkerActor(
 
   def doVerify(cstate: CompilationState, vctx: VerificationContext, funs: Set[FunDef], standalone: Boolean) {
     val params    = CodeGenParams.default.copy(maxFunctionInvocations = 5000, checkContracts = false)
-    val evaluator = new CodeGenEvaluator(vctx.context, cstate.program, params)
+    val evaluator = new CodeGenEvaluator(vctx.context, cstate.program, params) //new leon.evaluators.DefaultEvaluator(vctx.context, cstate.program) //
 
     for ((f, fv) <- verifOverview.toSeq.sortBy(_._1.getPos) if funs(f)) {
       try {
@@ -93,7 +93,7 @@ class VerificationWorker(s: ActorRef, im: InterruptManager) extends WorkerActor(
 
           vc -> (ovr, cexExec)
         }
-
+        clientLog("" + resultsWithCex)
         verifOverview += f -> FunVerifStatus(f, resultsWithCex)
 
         notifyVerifOverview(cstate)
@@ -109,9 +109,30 @@ class VerificationWorker(s: ActorRef, im: InterruptManager) extends WorkerActor(
   }
 
   def receive = {
-    case OnUpdateCode(cstate) if cstate.isCompiled =>
-      val program = cstate.program
+    case OnUpdateCode(cstateOriginal) if cstateOriginal.isCompiled =>
+      val programHasInstrumentation: Boolean = 
+        cstateOriginal.program.definedFunctions.exists { funDef =>
+            funDef.postcondition match {
+              case Some(postCondition) =>
+              import leon.purescala._
+              import Expressions._
+              ExprOps.exists {
+                case FunctionInvocation(callee, _) =>
+                  leon.purescala.DefOps.fullName(callee.fd)(cstateOriginal.program) startsWith "leon.instrumentation."
+                case _ =>
+                  false
+              }(postCondition)
+              case None => false
+            }
+          }
+      clientLog(if(programHasInstrumentation) "Program has instrumentation" else "No instrumentation")
+      
+      val program = if(programHasInstrumentation)
+        leon.transformations.InstrumentationPhase(this.ctx, cstateOriginal.program)
+        else cstateOriginal.program
 
+      val cstate = cstateOriginal.copy(optProgram = Some(program))
+        
       var toGenerate = Set[FunDef]()
       val oldVerifOverView = verifOverview
 
@@ -138,7 +159,7 @@ class VerificationWorker(s: ActorRef, im: InterruptManager) extends WorkerActor(
 
       val tsolver = SolverFactory.getFromSettings(ctx, program).withTimeout(5.seconds)
 
-      val vctx = VerificationContext(ctx, cstate.program, tsolver, reporter)
+      val vctx = VerificationContext(ctx, program, tsolver, reporter)
 
       if (!toGenerate.isEmpty) {
         clientLog("Generating VCs...")
