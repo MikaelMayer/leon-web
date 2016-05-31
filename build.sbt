@@ -83,7 +83,7 @@ lazy val client = (project in file("client")).settings(
   scalaVersion := "2.11.8",
   libraryDependencies ++= Seq(
     "org.scala-js" %%% "scalajs-dom" % "0.9.0",
-    "be.doeraene" %%% "scalajs-jquery" % "0.8.0",
+    "be.doeraene" %%% "scalajs-jquery" % "0.9.0",
     "com.github.japgolly.scalajs-react" %%% "core" % "0.11.1",
     "com.github.japgolly.scalajs-react" %%% "extra" % "0.11.1",
     "org.monifu" %%% "monifu" % "1.0-RC4",
