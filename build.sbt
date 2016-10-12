@@ -102,7 +102,8 @@ lazy val client = (project in file("client")).settings(
     "org.webjars.bower" % "react" % "15.0.1" / "react-dom.js" minified "react-dom.min.js" dependsOn "react-with-addons.js" commonJSName "ReactDOM",
     "org.webjars.bower" % "react" % "15.0.1" / "react-dom-server.js" minified  "react-dom-server.min.js" dependsOn "react-dom.js" commonJSName "ReactDOMServer"
   ),
-  skip in packageJSDependencies := false
+  skip in packageJSDependencies := false,
+  mainClass in Compile := Some("leon.web.client.MainDelayed")
 ).enablePlugins(ScalaJSPlugin, ScalaJSPlay).dependsOn(sharedJs)
 
 watchSources := watchSources.value.filter ( source =>
